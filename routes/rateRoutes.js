@@ -9,6 +9,8 @@ const rateController = require('../controllers/rateController');
  *     summary: Retrieve the current rates.
  *     tags:
  *       - Rates
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Rates retrieved successfully.
@@ -52,6 +54,8 @@ router.get('/get-rates', rateController.getRates);
  *     summary: Create or update the gold and silver rates.
  *     tags:
  *       - Rates
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -125,6 +129,8 @@ router.post('/set-rates', rateController.createOrUpdateRates);
  *     summary: Delete all rates from the system.
  *     tags:
  *       - Rates
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Rates deleted successfully.

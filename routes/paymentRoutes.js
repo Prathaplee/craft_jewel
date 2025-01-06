@@ -11,6 +11,8 @@ const razorpayController = require('../controllers/paymentController');
  *     summary: Create a payment order for a gold subscription.
  *     tags:
  *       - Payment
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -101,6 +103,8 @@ router.post('/create-order-gold', razorpayController.createGoldPaymentOrder);
  *     summary: Create a payment order for a diamond subscription.
  *     tags:
  *       - Payment
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -195,6 +199,8 @@ router.post('/create-order-diamond', razorpayController.createDiamondPaymentOrde
  *     description: This endpoint verifies a payment made through Razorpay for a subscription (Gold or Diamond).
  *     tags:
  *       - Payment
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:

@@ -9,6 +9,8 @@ const versionController = require('../controllers/versionController');
  *     summary: Retrieve the application version information.
  *     tags:
  *       - Version
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Version information retrieved successfully.
@@ -63,6 +65,8 @@ router.get('/get-version', versionController.getVersion);
  *     summary: Set or update application version details.
  *     tags:
  *       - Version
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:

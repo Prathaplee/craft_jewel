@@ -9,6 +9,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const referralRoutes = require('./routes/referralRoutes');
 const rateRoutes = require('./routes/rateRoutes');
 const versionRoutes = require('./routes/versionRoutes');
+const authRoutes=require('./routes/authRoutes.js')
 const os = require('os'); // Import os module
 
 const { swaggerUi, swaggerDocs } = require('./swagger'); // Import Swagger configuration
@@ -25,9 +26,10 @@ app.get('/swagger.json', (req, res) => {
 });
 
 // Routes that do not require token verification
-app.use('/', userRoutes);
+app.use('/', authRoutes);
 
 // Apply the token verification middleware to protected routes
+app.use('/',  verifyToken, userRoutes);
 app.use('/', verifyToken, schemeRoutes);
 app.use('/', verifyToken, subscribeRoutes);
 app.use('/', verifyToken, paymentRoutes);

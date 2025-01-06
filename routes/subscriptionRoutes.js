@@ -10,6 +10,8 @@ const subscriptionController = require('../controllers/subscriptionController');
  *     description: This endpoint is used to create a gold subscription for the user based on the selected scheme and payment details.
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -124,6 +126,8 @@ router.post('/subscribe-gold', subscriptionController.createGoldSubscription);
  *     operationId: createDiamondSubscription
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       description: The subscription data for the Diamond scheme.
  *       required: true
@@ -220,6 +224,8 @@ router.post('/subscribe-diamond', subscriptionController.createDiamondSubscripti
  *     description: This endpoint is used to update an existing gold subscription based on the provided subscription ID.
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: subscription_id
  *         in: path
@@ -329,6 +335,8 @@ router.put('/update-goldsubscribe/:subscription_id', subscriptionController.upda
  *     operationId: updateDiamondSubscription
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: subscription_id
  *         in: path
@@ -432,6 +440,8 @@ router.put('/update-diamondsubscribe/:subscription_id', subscriptionController.u
  *     operationId: getSubscriptionReport
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Subscription report retrieved successfully.
@@ -523,6 +533,8 @@ router.get('/subscribe-report', subscriptionController.getSubscriptionReport);
  *     operationId: getSubscriptionReportUser
  *     tags:
  *       - Subscription
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: user_id
  *         in: path

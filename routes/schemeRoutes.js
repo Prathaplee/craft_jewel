@@ -12,6 +12,8 @@ const SchemeController = require('../controllers/schemeController');
  *     operationId: createScheme
  *     tags:
  *       - Scheme
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -140,6 +142,8 @@ router.post('/createscheme', SchemeController.createScheme);
  *     operationId: getSchemes
  *     tags:
  *       - Scheme
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: A list of all available schemes.
@@ -217,6 +221,8 @@ router.get('/getAllscheme', SchemeController.getSchemes);
  *     operationId: getScheme
  *     tags:
  *       - Scheme
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -310,6 +316,8 @@ router.get('/getscheme/:id', SchemeController.getScheme);
  *     operationId: updateScheme
  *     tags:
  *       - Scheme
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -458,6 +466,8 @@ router.put('/updatescheme/:id', SchemeController.updateScheme);
  *     operationId: deleteScheme
  *     tags:
  *       - Scheme
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path

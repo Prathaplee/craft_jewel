@@ -9,6 +9,8 @@ const ReferralController = require('../controllers/ReferralController');
  *     summary: Retrieve a list of users referred by a specific referral code.
  *     tags:
  *       - Referral
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
  *         name: referralCode
