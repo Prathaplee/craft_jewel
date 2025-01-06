@@ -205,9 +205,8 @@ exports.verifyOtp = async (req, res) => {
     }
 
     // Debugging logs
-    // console.log('Fetched User:', user); // Debugging
-    console.log('Stored OTP:', user.otp); // Debugging
-    console.log('Provided OTP:', otp);   // Debugging
+    console.log('Stored OTP:', user.otp);
+    console.log('Provided OTP:', otp);
 
     // Compare OTPs as strings
     if (String(user.otp) !== String(otp)) {
@@ -219,12 +218,26 @@ exports.verifyOtp = async (req, res) => {
     user.otp = null; // Clear OTP after successful verification
     await user.save();
 
-    return res.send({ message: 'OTP verified successfully' });
+    // Return success message along with user details
+    return res.send({
+      message: 'OTP verified successfully',
+      user: {
+        _id: user._id,
+        username: user.username,
+        fullname: user.fullname,
+        phonenumber: user.phonenumber,
+        email: user.email,
+        role: user.role,
+        referralCode: user.referralCode,
+        isVerified: user.isVerified,
+      },
+    });
   } catch (err) {
     console.error('Error verifying OTP:', err);
     return res.status(500).send({ message: 'Internal server error', error: err.message });
   }
 };
+
 
   
   
