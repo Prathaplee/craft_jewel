@@ -1,5 +1,4 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const twilioClient = require('../config/twilio'); // Ensure your Twilio config is correct
 const User = require('../models/User'); // Import the User model
 const mongoose = require('mongoose');
@@ -7,8 +6,9 @@ const db = mongoose.connection.useDb('Test_1'); // Use the specific database
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
-
+// const tokenStore = {};
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 exports.signup = async (req, res) => {
   const { username, fullname, phonenumber, email, password } = req.body;
 
@@ -186,6 +186,7 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+
 exports.verifyOtp = async (req, res) => {
   try {
     const { phonenumber, otp } = req.body;
@@ -204,10 +205,6 @@ exports.verifyOtp = async (req, res) => {
       return res.status(404).send({ message: 'User not found' });
     }
 
-    // Debugging logs
-    console.log('Stored OTP:', user.otp);
-    console.log('Provided OTP:', otp);
-
     // Compare OTPs as strings
     if (String(user.otp) !== String(otp)) {
       return res.status(401).send({ message: 'Invalid OTP' });
@@ -216,11 +213,22 @@ exports.verifyOtp = async (req, res) => {
     // Mark user as verified and clear OTP
     user.isVerified = true;
     user.otp = null; // Clear OTP after successful verification
+
+    // Generate a new JWT token with a secret key stored in an environment variable
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, role: user.role },
+      process.env.JWT_SECRET, // Secret key from environment variables
+      { expiresIn: '1h' } // Token expiry time
+    );
+
+    // Save the token in the user document (optional)
+    user.token = token; // Store the token in the database (optional, depending on your needs)
     await user.save();
 
-    // Return success message along with user details
+    // Return success message along with the token and user details
     return res.send({
       message: 'OTP verified successfully',
+      token, // Include the JWT token
       user: {
         _id: user._id,
         username: user.username,
@@ -238,9 +246,6 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
-
-  
-  
   exports.updateProfile = async (req, res) => {
     try {
       const { userId } = req.params;

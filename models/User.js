@@ -37,6 +37,17 @@ const userSchema = new mongoose.Schema({
   otp: {
     type: String, // For OTP verification
   },
+  otp: {
+    type: String, // For OTP verification
+  },
+  token: {
+    type: String, // Store the generated token for the user
+    required: false, // Optional, only set when the user has verified OTP
+  },
+  tokenCreatedAt: {
+    type: Date, // Store the time when the token was created
+    required: false, // Optional, only set when the token is generated
+  },
   address: {
     street: String,
     city: String,

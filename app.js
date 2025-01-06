@@ -1,3 +1,4 @@
+// app.js
 const express = require('express');
 const app = express();
 const mongoose = require('./config/database'); // Import the database connection
@@ -11,6 +12,7 @@ const versionRoutes = require('./routes/versionRoutes');
 const os = require('os'); // Import os module
 
 const { swaggerUi, swaggerDocs } = require('./swagger'); // Import Swagger configuration
+const verifyToken = require('./auth.js'); // Import token verification middleware
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -21,14 +23,19 @@ app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerDocs); // Send the generated Swagger spec as JSON
 });
-// Routes
+
+// Routes that do not require token verification
 app.use('/', userRoutes);
-app.use('/', schemeRoutes);
-app.use('/', paymentRoutes);
-app.use('/', subscribeRoutes);
-app.use('/', referralRoutes);
-app.use('/', rateRoutes);
-app.use('/', versionRoutes);
+
+// Apply the token verification middleware to protected routes
+app.use('/', verifyToken, schemeRoutes);
+app.use('/', verifyToken, subscribeRoutes);
+app.use('/', verifyToken, paymentRoutes);
+app.use('/', verifyToken, referralRoutes);
+app.use('/', verifyToken, rateRoutes);
+app.use('/', verifyToken, versionRoutes);
+
+// Routes that do not require token verification (like the Swagger docs) can be added here
 
 const getLocalIp = () => {
   const interfaces = os.networkInterfaces();
