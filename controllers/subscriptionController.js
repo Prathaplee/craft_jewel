@@ -230,6 +230,50 @@ const getSubscriptionReport = async (req, res) => {
   }
 };
 
+const getPendingRequests = async (req, res) => {
+  try {
+    // Retrieve all pending requests from both subscription models
+    const goldPendingRequests = await GoldSubscription.find({ subscribe_status: 'waiting' });
+    const diamondPendingRequests = await DiamondSubscription.find({ subscribe_status: 'waiting' });
+
+    // Combine the results from both subscription types
+    const allPendingRequests = [...goldPendingRequests, ...diamondPendingRequests];
+
+    // If no pending requests found, return a message
+    if (allPendingRequests.length === 0) {
+      return res.status(404).json({ message: "No pending requests found" });
+    }
+
+    // Retrieve user details for each pending request
+    const enrichedRequests = await Promise.all(
+      allPendingRequests.map(async (request) => {
+        try {
+          const user = await User.findById(request.user_id);
+          return {
+            ...request.toObject(), // Convert Mongoose document to plain object
+            userDetails: user || { message: 'User not found' },
+          };
+        } catch (err) {
+          return {
+            ...request.toObject(),
+            userDetails: { message: 'Error retrieving user details', error: err.message },
+          };
+        }
+      })
+    );
+
+    res.status(200).json({
+      message: "Pending requests retrieved successfully",
+      data: enrichedRequests,
+    });
+  } catch (error) {
+    console.error("Error fetching pending requests:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching the pending requests",
+      error: error.message,
+    });
+  }
+};
 
 const getSubscriptionReporUser = async (req, res) => {
   try {
@@ -264,4 +308,4 @@ const getSubscriptionReporUser = async (req, res) => {
   }
 };
 
-module.exports = { createGoldSubscription, createDiamondSubscription, updateGoldSubscription,updateDiamondSubscription, getSubscriptionReport, getSubscriptionReporUser };
+module.exports = { createGoldSubscription, createDiamondSubscription, updateGoldSubscription,updateDiamondSubscription, getSubscriptionReport, getSubscriptionReporUser,getPendingRequests };
