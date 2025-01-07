@@ -57,12 +57,20 @@ const userSchema = new mongoose.Schema({
     bank_name: String,
   },
   kyc: {
-    aadhar_image: {
-      data: Buffer, // Store the image as binary data
+    aadhaar_front: {
+      data: Buffer, // Store the front image of Aadhaar as binary data
       contentType: String, // Store MIME type for the image
     },
-    pan_image: {
-      data: Buffer, // Store the image as binary data
+    aadhaar_back: {
+      data: Buffer, // Store the back image of Aadhaar as binary data
+      contentType: String, // Store MIME type for the image
+    },
+    pan_front: {
+      data: Buffer, // Store the front image of PAN as binary data
+      contentType: String, // Store MIME type for the image
+    },
+    pan_back: {
+      data: Buffer, // Store the back image of PAN as binary data
       contentType: String, // Store MIME type for the image
     },
   },
