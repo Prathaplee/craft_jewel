@@ -10,7 +10,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 exports.signup = async (req, res) => {
-  const { username, fullname, phonenumber, email, password } = req.body;
+  const { username, fullname, phonenumber, email, password ,role} = req.body;
 
   try {
     // Check if user already exists by email
@@ -32,6 +32,7 @@ exports.signup = async (req, res) => {
       phonenumber,
       email,
       password: hashedPassword,  // Store the hashed password
+      role,
       referralCode,  // Set the referral code
     });
 
@@ -49,6 +50,8 @@ exports.signup = async (req, res) => {
         email: savedUser.email,
         role: savedUser.role,
         referralCode: savedUser.referralCode, // Ensure referral code is included
+        isAddressAdded: savedUser.isAddressAdded,
+
       },
     });
   } catch (err) {

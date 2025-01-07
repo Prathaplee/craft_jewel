@@ -37,9 +37,6 @@ const userSchema = new mongoose.Schema({
   otp: {
     type: String, // For OTP verification
   },
-  otp: {
-    type: String, // For OTP verification
-  },
   token: {
     type: String, // Store the generated token for the user
     required: false, // Optional, only set when the user has verified OTP
@@ -69,7 +66,19 @@ const userSchema = new mongoose.Schema({
       contentType: String, // Store MIME type for the image
     },
   },
-}, { timestamps: true }); 
+}, { timestamps: true });
+
+// Add a virtual field `isAddressAdded`
+userSchema.virtual('isAddressAdded').get(function () {
+  const { street, city, state, pincode } = this.address || {};
+  return !!(street || city || state || pincode); // Returns true if any address field has a value
+});
+
+// Ensure virtuals are included in JSON output
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
+// Create the model
 const User = db.model('User', userSchema);
 
-module.exports = User;  // Export the model
+module.exports = User;
