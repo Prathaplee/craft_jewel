@@ -376,7 +376,7 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
  * @swagger
  * /update-kyc/{userId}:
  *   put:
- *     summary: Update user KYC details with Aadhaar and PAN images.
+ *     summary: Update user KYC details with Aadhaar number, PAN number, and images.
  *     tags:
  *       - User Profile
  *     security:
@@ -395,22 +395,24 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
  *           schema:
  *             type: object
  *             properties:
- *               aadhaarFront:
+ *               aadhaar_number:
  *                 type: string
- *                 format: binary
- *                 description: Aadhaar card front image file.
- *               aadhaarBack:
+ *                 description: Aadhaar card number.
+ *               pan_number:
  *                 type: string
- *                 format: binary
- *                 description: Aadhaar card back image file.
- *               panFront:
- *                 type: string
- *                 format: binary
- *                 description: PAN card front image file.
- *               panBack:
- *                 type: string
- *                 format: binary
- *                 description: PAN card back image file.
+ *                 description: PAN card number.
+ *               aadhaar:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Aadhaar card image files (can include front, back, or multiple images).
+ *               pan:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: PAN card image files (can include front, back, or multiple images).
  *     responses:
  *       200:
  *         description: KYC updated successfully.
@@ -425,18 +427,18 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
  *                 kyc:
  *                   type: object
  *                   properties:
- *                     aadhaar_front:
+ *                     aadhaar_number:
  *                       type: string
- *                       example: "Stored in database"
- *                     aadhaar_back:
+ *                       example: "123456789012"
+ *                     pan_number:
  *                       type: string
- *                       example: "Stored in database"
- *                     pan_front:
- *                       type: string
- *                       example: "Stored in database"
- *                     pan_back:
- *                       type: string
- *                       example: "Stored in database"
+ *                       example: "ABCDE1234F"
+ *                     aadhaar_images:
+ *                       type: integer
+ *                       example: 2
+ *                     pan_images:
+ *                       type: integer
+ *                       example: 2
  *       400:
  *         description: Bad request due to missing or invalid data.
  *         content:
@@ -446,7 +448,7 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "All KYC documents are required: Aadhaar front, Aadhaar back, PAN front, PAN back"
+ *                   example: "Aadhaar number, PAN number, and at least one image for both are required"
  *       404:
  *         description: User not found.
  *         content:
@@ -470,6 +472,5 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
  */
 
 router.put('/update-kyc/:userId', UserController.updateKYC);
-
 
 module.exports = router;

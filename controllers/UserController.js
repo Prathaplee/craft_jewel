@@ -303,12 +303,12 @@ exports.verifyOtp = async (req, res) => {
 
   // Configure multer for memory storage
   const storage = multer.memoryStorage();
-  const upload = multer({ storage }).fields([
-    { name: 'aadhaarFront', maxCount: 1 },
-    { name: 'aadhaarBack', maxCount: 1 },
-    { name: 'panFront', maxCount: 1 },
-    { name: 'panBack', maxCount: 1 },
+  const upload = multer().fields([
+    { name: 'aadhaar', maxCount: 5 }, // Accept up to 5 Aadhaar images
+    { name: 'pan', maxCount: 5 }, // Accept up to 5 PAN images
   ]);
+  
+
 // KYC update function
 exports.updateKYC = async (req, res) => {
   upload(req, res, async (err) => {
@@ -317,17 +317,22 @@ exports.updateKYC = async (req, res) => {
     }
 
     const { userId } = req.params;
+    const { aadhaar_number, pan_number } = req.body;
 
     // Retrieve uploaded files
-    const aadhaarFront = req.files?.aadhaarFront ? req.files.aadhaarFront[0] : null;
-    const aadhaarBack = req.files?.aadhaarBack ? req.files.aadhaarBack[0] : null;
-    const panFront = req.files?.panFront ? req.files.panFront[0] : null;
-    const panBack = req.files?.panBack ? req.files.panBack[0] : null;
+    const aadhaarImages = req.files?.aadhaar || []; // Array of Aadhaar images
+    const panImages = req.files?.pan || []; // Array of PAN images
 
-    // Ensure all required images are uploaded
-    if (!aadhaarFront || !aadhaarBack || !panFront || !panBack) {
-      return res.status(400).json({ 
-        message: 'All KYC documents are required: Aadhaar front, Aadhaar back, PAN front, PAN back' 
+    // Ensure all required data is provided
+    if (!aadhaar_number || !pan_number) {
+      return res.status(400).json({
+        message: 'Aadhaar number and PAN number are required',
+      });
+    }
+
+    if (aadhaarImages.length === 0 || panImages.length === 0) {
+      return res.status(400).json({
+        message: 'At least one Aadhaar image and one PAN image are required',
       });
     }
 
@@ -339,23 +344,18 @@ exports.updateKYC = async (req, res) => {
       }
 
       // Update KYC details
+      user.aadhaar_number = aadhaar_number;
+      user.pan_number = pan_number;
+
       user.kyc = {
-        aadhaar_front: {
-          data: aadhaarFront.buffer,
-          contentType: aadhaarFront.mimetype,
-        },
-        aadhaar_back: {
-          data: aadhaarBack.buffer,
-          contentType: aadhaarBack.mimetype,
-        },
-        pan_front: {
-          data: panFront.buffer,
-          contentType: panFront.mimetype,
-        },
-        pan_back: {
-          data: panBack.buffer,
-          contentType: panBack.mimetype,
-        },
+        aadhaar_images: aadhaarImages.map((file) => ({
+          data: file.buffer,
+          contentType: file.mimetype,
+        })),
+        pan_images: panImages.map((file) => ({
+          data: file.buffer,
+          contentType: file.mimetype,
+        })),
       };
 
       // Save updated user
@@ -364,10 +364,10 @@ exports.updateKYC = async (req, res) => {
       return res.json({
         message: 'KYC updated successfully',
         kyc: {
-          aadhaar_front: 'Stored in database',
-          aadhaar_back: 'Stored in database',
-          pan_front: 'Stored in database',
-          pan_back: 'Stored in database',
+          aadhaar_number,
+          pan_number,
+          aadhaar_images: aadhaarImages.length,
+          pan_images: panImages.length,
         },
       });
     } catch (error) {
