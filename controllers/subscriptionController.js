@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Scheme = require('../models/Scheme');
 const moment = require('moment');
 const Rate = require('../models/Rate');
+
 const createGoldSubscription = async (req, res) => {
   try {
     const { user_id, scheme_id, payment_type, amount, weight } = req.body;
@@ -15,7 +16,7 @@ const createGoldSubscription = async (req, res) => {
     }
     
     // Ensure KYC is completed
-    if (!user.kyc || !user.kyc.aadhar_image || !user.kyc.pan_image) {
+    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images || !user.aadhaar_number || !user.pan_number) {
       return res.status(400).json({ message: "User KYC not completed" });
     }
 
@@ -97,7 +98,7 @@ const createDiamondSubscription = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
-    if (!user.kyc || !user.kyc.aadhar_image || !user.kyc.pan_image) {
+    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images || !user.aadhaar_number || !user.pan_number){
       return res.status(400).json({ message: "User KYC not completed" });
     }
     const scheme = await Scheme.findById(scheme_id);
@@ -134,13 +135,27 @@ const createDiamondSubscription = async (req, res) => {
 const updateGoldSubscription = async (req, res) => {
   try {
     const { subscription_id } = req.params; // Get the subscription ID from the request params
-    const { due_date, subscribe_status } = req.body;
+    const { due_date, subscribe_status, isVerifiedKyc } = req.body; // Include isVerifiedKyc in the request body
 
+    // Find the subscription by ID
     const subscription = await GoldSubscription.findById(subscription_id);
     if (!subscription) {
       return res.status(400).json({ message: "Gold subscription not found" });
     }
-    
+
+    // Check if the user exists using user_id from the subscription
+    const user = await User.findById(subscription.user_id);
+    if (!user) {
+      return res.status(400).json({ message: "User associated with this subscription not found" });
+    }
+
+    // Allow admin to update isVerifiedKyc for the user
+    if (typeof isVerifiedKyc !== 'undefined') {
+      user.isVerifiedKyc = isVerifiedKyc; // Update isVerifiedKyc
+      await user.save(); // Save changes to the user
+    }
+
+    // Update the subscription details
     const initialDate = moment().toDate();
     const endDate = moment(initialDate).add(11, 'months').toDate();
     const result = await GoldSubscription.updateOne(
@@ -150,15 +165,26 @@ const updateGoldSubscription = async (req, res) => {
           subscribe_status,
           initial_date: initialDate,
           end_date: endDate,
-          due_date
-        }
+          due_date,
+        },
       }
     );
+
     if (result.modifiedCount === 0) {
       return res.status(400).json({ message: "Failed to update Gold subscription" });
     }
+
+    // Fetch updated subscription
     const updatedSubscription = await GoldSubscription.findById(subscription_id);
-    res.status(200).json({ message: "Gold subscription updated successfully", subscription: updatedSubscription });
+
+    res.status(200).json({
+      message: "Gold subscription updated successfully",
+      subscription: updatedSubscription,
+      user: {
+        id: user._id,
+        isVerifiedKyc: user.isVerifiedKyc,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "An error occurred while updating the Gold subscription", error });
@@ -170,15 +196,19 @@ const updateGoldSubscription = async (req, res) => {
 const updateDiamondSubscription = async (req, res) => {
   try {
     const { subscription_id } = req.params; 
-    const { due_date, subscribe_status } = req.body;
+    const { due_date, subscribe_status, isVerifiedKyc } = req.body;
 
+    // Find the subscription by ID
     const subscription = await DiamondSubscription.findById(subscription_id);
     if (!subscription) {
       return res.status(404).json({ message: "Diamond subscription not found" });
     }
 
-    const initialDate = moment().toDate();
+    // Extract the user_id from the subscription
+    const { user_id } = subscription;
 
+    // Update the subscription details
+    const initialDate = moment().toDate();
     const endDate = moment(initialDate).add(11, 'months').toDate();
 
     const result = await DiamondSubscription.updateOne(
@@ -192,13 +222,33 @@ const updateDiamondSubscription = async (req, res) => {
         },
       }
     );
+
     if (result.modifiedCount === 0) {
       return res.status(400).json({ message: "Failed to update Diamond subscription" });
     }
+
+    // Update the user's isVerifiedKyc status if provided in the request
+    if (typeof isVerifiedKyc === 'boolean') {
+      const userUpdateResult = await User.updateOne(
+        { _id: user_id }, // Match the user by ID
+        { $set: { isVerifiedKyc } }
+      );
+
+      if (userUpdateResult.modifiedCount === 0) {
+        return res.status(400).json({ message: "Failed to update user KYC status" });
+      }
+    }
+
+    // Fetch the updated subscription
     const updatedSubscription = await DiamondSubscription.findById(subscription_id);
+
     res.status(200).json({
       message: "Diamond subscription updated successfully",
       subscription: updatedSubscription,
+      user: {
+        user_id,
+        isVerifiedKyc,
+      },
     });
   } catch (error) {
     console.error("Error updating Diamond subscription:", error);

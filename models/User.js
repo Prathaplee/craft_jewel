@@ -29,22 +29,22 @@ const userSchema = new mongoose.Schema(
     },
     referralCode: {
       type: String,
-      required: false, // Optional field
+      required: false, 
     },
     role: {
       type: String,
-      default: 'user', // Default role for new users
+      default: 'user', 
     },
     otp: {
-      type: String, // For OTP verification
+      type: String, 
     },
     token: {
-      type: String, // Store the generated token for the user
-      required: false, // Optional, only set when the user has verified OTP
+      type: String, 
+      required: false, 
     },
     tokenCreatedAt: {
-      type: Date, // Store the time when the token was created
-      required: false, // Optional, only set when the token is generated
+      type: Date, 
+      required: false, 
     },
     address: {
       street: String,
@@ -59,25 +59,29 @@ const userSchema = new mongoose.Schema(
     },
     aadhaar_number: {
       type: String,
-      required: false, // Optional field
+      required: false, 
     },
     pan_number: {
       type: String,
-      required: false, // Optional field
+      required: false, 
     },
     kyc: {
       aadhaar_images: [
         {
-          data: Buffer, // Store Aadhaar images as binary data
-          contentType: String, // Store MIME type for the image
+          data: Buffer, 
+          contentType: String, 
         },
       ],
       pan_images: [
         {
-          data: Buffer, // Store PAN images as binary data
-          contentType: String, // Store MIME type for the image
+          data: Buffer, 
+          contentType: String, 
         },
       ],
+    },
+    isVerifiedKyc: {
+      type: Boolean,
+      default: false, 
     },
   },
   { timestamps: true }

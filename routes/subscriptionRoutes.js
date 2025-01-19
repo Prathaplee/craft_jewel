@@ -221,7 +221,7 @@ router.post('/subscribe-diamond', subscriptionController.createDiamondSubscripti
  * /update-goldsubscribe/{subscription_id}:
  *   put:
  *     summary: Update an existing Gold Subscription
- *     description: This endpoint is used to update an existing gold subscription based on the provided subscription ID.
+ *     description: This endpoint is used to update an existing gold subscription based on the provided subscription ID. Admins can also update the `isVerifiedKyc` status of the user associated with the subscription.
  *     tags:
  *       - Subscription
  *     security:
@@ -256,6 +256,10 @@ router.post('/subscribe-diamond', subscriptionController.createDiamondSubscripti
  *                   - cancelled
  *                 description: The updated subscription status.
  *                 example: "active"
+ *               isVerifiedKyc:
+ *                 type: boolean
+ *                 description: Whether the user's KYC is verified.
+ *                 example: true
  *     responses:
  *       200:
  *         description: Gold subscription updated successfully.
@@ -270,24 +274,9 @@ router.post('/subscribe-diamond', subscriptionController.createDiamondSubscripti
  *                 subscription:
  *                   type: object
  *                   properties:
- *                     user_id:
+ *                     _id:
  *                       type: string
  *                       example: "60d8f7a2f3f3f7001e8f6b7c"
- *                     scheme_id:
- *                       type: string
- *                       example: "60d8f7a2f3f3f7001e8f6b7d"
- *                     payment_type:
- *                       type: string
- *                       enum:
- *                         - online
- *                         - cash
- *                       example: "online"
- *                     initial_amount:
- *                       type: number
- *                       example: 50000
- *                     weight:
- *                       type: number
- *                       example: 10
  *                     subscribe_status:
  *                       type: string
  *                       enum:
@@ -295,10 +284,31 @@ router.post('/subscribe-diamond', subscriptionController.createDiamondSubscripti
  *                         - active
  *                         - cancelled
  *                       example: "active"
- *                     created_at:
+ *                     initial_date:
  *                       type: string
  *                       format: date-time
- *                       example: "2024-12-30T10:30:00Z"
+ *                       example: "2025-01-19T10:00:00Z"
+ *                     end_date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-12-19T10:00:00Z"
+ *                     due_date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-12-30T00:00:00Z"
+ *                     user_id:
+ *                       type: string
+ *                       example: "60d8f7a2f3f3f7001e8f6b7c"
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "60d8f7a2f3f3f7001e8f6b7c"
+ *                     isVerifiedKyc:
+ *                       type: boolean
+ *                       description: Whether the user's KYC is verified.
+ *                       example: true
  *       400:
  *         description: Subscription not found or failed to update.
  *         content:
@@ -331,7 +341,7 @@ router.put('/update-goldsubscribe/:subscription_id', subscriptionController.upda
  * /update-diamondsubscribe/{subscription_id}:
  *   put:
  *     summary: Updates a Diamond subscription
- *     description: Updates the subscription details such as the subscription status, due date, initial date, and end date for the given Diamond subscription ID.
+ *     description: Updates the subscription details such as the subscription status, due date, initial date, end date, and optionally the user's KYC verification status for the given Diamond subscription ID.
  *     operationId: updateDiamondSubscription
  *     tags:
  *       - Subscription
@@ -362,6 +372,10 @@ router.put('/update-goldsubscribe/:subscription_id', subscriptionController.upda
  *                 type: string
  *                 description: The updated subscription status (e.g., active, waiting, cancelled).
  *                 example: "active"
+ *               isVerifiedKyc:
+ *                 type: boolean
+ *                 description: Optional. Allows the admin to update the user's KYC verification status.
+ *                 example: true
  *     responses:
  *       200:
  *         description: Diamond subscription updated successfully.
@@ -394,8 +408,17 @@ router.put('/update-goldsubscribe/:subscription_id', subscriptionController.upda
  *                       type: string
  *                       format: date-time
  *                       example: "2025-12-30T00:00:00Z"
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: string
+ *                       example: "60c72b2f9f1b2c001f98f1b3"
+ *                     isVerifiedKyc:
+ *                       type: boolean
+ *                       example: true
  *       400:
- *         description: Bad request, failed to update the subscription.
+ *         description: Bad request, failed to update the subscription or KYC status.
  *         content:
  *           application/json:
  *             schema:
