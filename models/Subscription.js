@@ -8,16 +8,9 @@ const subscriptionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  payment_type: {
-    type: String,
-    enum: ['online', 'cash'],
-    default:'online'
-  },
   weight: {
     type: Number,
-    required: function () {
-      return this.scheme_id.scheme_type === 'gold';
-    }
+    required: false
   },
   initial_amount: {
     type: Number,

@@ -7,7 +7,7 @@ const Rate = require('../models/Rate');
 
 const createGoldSubscription = async (req, res) => {
   try {
-    const { user_id, scheme_id, payment_type, amount, weight } = req.body;
+    const { user_id, scheme_id,amount, weight } = req.body;
     
     // Fetch the user from the database
     const user = await User.findById(user_id);
@@ -65,7 +65,6 @@ const createGoldSubscription = async (req, res) => {
     const subscriptionData = {
       user_id,
       scheme_id,
-      payment_type,
       subscribe_status: 'waiting',
       created_at: new Date(),
       updated_at: new Date(),
@@ -93,7 +92,7 @@ const createGoldSubscription = async (req, res) => {
 
 const createDiamondSubscription = async (req, res) => {
   try {
-    const { user_id, scheme_id, payment_type, initial_amount} = req.body;
+    const { user_id, scheme_id, initial_amount} = req.body;
     const user = await User.findById(user_id);
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -111,7 +110,6 @@ const createDiamondSubscription = async (req, res) => {
     const subscriptionData = {
       user_id,
       scheme_id,
-      payment_type,
       initial_amount,
       payment_status:'pending',
       subscribe_status: 'waiting',
