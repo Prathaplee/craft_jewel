@@ -473,4 +473,7 @@ router.put('/adr-bank/:userId', UserController.updateProfile);
 
 router.put('/update-kyc/:userId', UserController.updateKYC);
 
+router.get('/kyc/:userId', UserController.getKYC);
+
+
 module.exports = router;

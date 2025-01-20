@@ -302,6 +302,8 @@ const getSubscriptionReport = async (req, res) => {
 };
 
 
+const { getKYC } = require('./UserController'); // Adjust the path to where `getKYC` is defined
+
 const getPendingRequests = async (req, res) => {
   try {
     // Retrieve all pending requests from both subscription models
@@ -316,14 +318,47 @@ const getPendingRequests = async (req, res) => {
       return res.status(404).json({ message: "No pending requests found" });
     }
 
-    // Retrieve user details for each pending request
+    // Retrieve user details and optionally KYC data for each pending request
     const enrichedRequests = await Promise.all(
       allPendingRequests.map(async (request) => {
         try {
           const user = await User.findById(request.user_id);
+
+          if (user) {
+            // Initialize user details without KYC data
+            const userDetails = { ...user.toObject() };
+            delete userDetails.kyc; // Exclude KYC data from user details
+
+            // Check if KYC data exists and fetch it if needed
+            if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
+              // Simulate calling `getKYC` by invoking its logic
+              const reqMock = { params: { userId: user._id } };
+              const resMock = {
+                json: (response) => response,
+                status: (statusCode) => ({
+                  json: (response) => ({ statusCode, ...response }),
+                }),
+              };
+              const kycResponse = await getKYC(reqMock, resMock);
+
+              // Return the enriched request with KYC data and user details (without KYC)
+              return {
+                ...request.toObject(),
+                userDetails,
+                kyc: kycResponse.kyc, // Add KYC data separately
+              };
+            }
+
+            // If no KYC data, just return user details without KYC
+            return {
+              ...request.toObject(),
+              userDetails,
+            };
+          }
+
           return {
-            ...request.toObject(), // Convert Mongoose document to plain object
-            userDetails: user || { message: 'User not found' },
+            ...request.toObject(),
+            userDetails: { message: 'User not found' },
           };
         } catch (err) {
           return {
@@ -346,6 +381,7 @@ const getPendingRequests = async (req, res) => {
     });
   }
 };
+
 
 const getSubscriptionReporUser = async (req, res) => {
   try {

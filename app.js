@@ -1,5 +1,6 @@
 // app.js
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const mongoose = require('./config/database'); // Import the database connection
 const userRoutes = require('./routes/userRoutes');
@@ -14,7 +15,7 @@ const os = require('os'); // Import os module
 
 const { swaggerUi, swaggerDocs } = require('./swagger'); // Import Swagger configuration
 const verifyToken = require('./auth.js'); // Import token verification middleware
-
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

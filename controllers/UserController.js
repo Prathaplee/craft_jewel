@@ -376,3 +376,46 @@ exports.updateKYC = async (req, res) => {
     }
   });
 };
+
+// KYC retrieve function
+exports.getKYC = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if KYC data exists for the user
+    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
+      return res.status(404).json({ message: 'No KYC data found for this user' });
+    }
+
+    // Retrieve Aadhaar images and PAN images
+    const aadhaarImages = user.kyc.aadhaar_images || [];
+    const panImages = user.kyc.pan_images || [];
+
+    // Create a response object
+    const response = {
+      aadhaar_images: aadhaarImages.map((image) => ({
+        contentType: image.contentType,
+        image: image.data.toString('base64'),
+      })),
+      pan_images: panImages.map((image) => ({
+        contentType: image.contentType,
+        image: image.data.toString('base64'),
+      })),
+    };
+
+    // Send the response with images encoded as base64
+    return res.json({
+      message: 'KYC data retrieved successfully',
+      kyc: response,
+    });
+  } catch (error) {
+    console.error('Error retrieving KYC:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
