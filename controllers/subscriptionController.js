@@ -259,12 +259,35 @@ const updateDiamondSubscription = async (req, res) => {
 
 const getSubscriptionReport = async (req, res) => {
   try {
+    // Fetch gold and diamond subscriptions
     const goldSubscriptions = await GoldSubscription.find({});
     const diamondSubscriptions = await DiamondSubscription.find({});
-    const subscriptionReport = {
-      gold: goldSubscriptions,
-      diamond: diamondSubscriptions,
+
+    // Helper function to fetch scheme data
+    const fetchSchemeDetails = async (subscriptions) => {
+      return Promise.all(
+        subscriptions.map(async (subscription) => {
+          if (subscription.scheme_id) {
+            const scheme = await Scheme.findById(subscription.scheme_id);
+            return {
+              ...subscription.toObject(),
+              schemeDetails: scheme || null,
+            };
+          }
+          return subscription;
+        })
+      );
     };
+
+    // Fetch scheme details for each subscription
+    const goldSubscriptionsWithSchemes = await fetchSchemeDetails(goldSubscriptions);
+    const diamondSubscriptionsWithSchemes = await fetchSchemeDetails(diamondSubscriptions);
+
+    const subscriptionReport = {
+      gold: goldSubscriptionsWithSchemes,
+      diamond: diamondSubscriptionsWithSchemes,
+    };
+
     res.status(200).json({
       message: "Subscription report retrieved successfully",
       data: subscriptionReport,
@@ -277,6 +300,7 @@ const getSubscriptionReport = async (req, res) => {
     });
   }
 };
+
 
 const getPendingRequests = async (req, res) => {
   try {
