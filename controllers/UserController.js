@@ -9,6 +9,8 @@ const fs = require('fs');
 // const tokenStore = {};
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+
+
 exports.signup = async (req, res) => {
   const { username, fullname, phonenumber, email, password ,role} = req.body;
 
@@ -127,19 +129,102 @@ exports.login = async (req, res) => {
   }
 };
 
+// KYC retrieve function
+exports.getKYC = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if KYC data exists for the user
+    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
+      return res.status(404).json({ message: 'No KYC data found for this user' });
+    }
+
+    // Retrieve Aadhaar images and PAN images
+    const aadhaarImages = user.kyc.aadhaar_images || [];
+    const panImages = user.kyc.pan_images || [];
+
+    // Create a response object
+    const response = {
+      aadhaar_images: aadhaarImages.map((image) => ({
+        contentType: image.contentType,
+        image: image.data.toString('base64'),
+      })),
+      pan_images: panImages.map((image) => ({
+        contentType: image.contentType,
+        image: image.data.toString('base64'),
+      })),
+    };
+
+    // Send the response with images encoded as base64
+    return res.json({
+      message: 'KYC data retrieved successfully',
+      kyc: response,
+    });
+  } catch (error) {
+    console.error('Error retrieving KYC:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      res.status(404).send({ message: 'User not found' });
-    } else {
-      res.send(user);
+    // Extract userId from request parameters
+    const userId = req.params.id;
+
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (user) {
+      // Initialize user details without KYC data
+      const userDetails = { ...user.toObject() };
+      delete userDetails.kyc; // Exclude KYC data from user details
+
+      // Check if KYC data exists and fetch it if needed
+      if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
+        // Use a mocked request and response for getKYC
+        const reqMock = { params: { userId } };
+        const resMock = {
+          status: (statusCode) => ({
+            json: (response) => ({ statusCode, ...response }),
+          }),
+          json: (response) => response,
+        };
+
+        // Call getKYC with the mocked objects
+        const kycResponse = await exports.getKYC(reqMock, resMock);
+
+        // Respond with user details and KYC data
+        return res.status(200).json({
+          userDetails,
+          kyc: kycResponse.kyc, // Include KYC data separately
+        });
+      }
+
+      // Respond with user details (without KYC) if KYC data is missing
+      return res.status(200).json({
+        userDetails,
+        message: "KYC data not available",
+      });
     }
+
+    // If the user is not found
+    return res.status(404).json({ message: "User not found" });
   } catch (err) {
-    res.status(500).send(err);
+    // Handle errors gracefully
+    console.error("Error fetching user:", err);
+    res.status(500).json({
+      message: "An error occurred while fetching the user",
+      error: err.message,
+    });
   }
 };
+
 
 exports.updateUser = async (req, res) => {
   try {
@@ -377,45 +462,3 @@ exports.updateKYC = async (req, res) => {
   });
 };
 
-// KYC retrieve function
-exports.getKYC = async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    // Find the user by ID
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Check if KYC data exists for the user
-    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
-      return res.status(404).json({ message: 'No KYC data found for this user' });
-    }
-
-    // Retrieve Aadhaar images and PAN images
-    const aadhaarImages = user.kyc.aadhaar_images || [];
-    const panImages = user.kyc.pan_images || [];
-
-    // Create a response object
-    const response = {
-      aadhaar_images: aadhaarImages.map((image) => ({
-        contentType: image.contentType,
-        image: image.data.toString('base64'),
-      })),
-      pan_images: panImages.map((image) => ({
-        contentType: image.contentType,
-        image: image.data.toString('base64'),
-      })),
-    };
-
-    // Send the response with images encoded as base64
-    return res.json({
-      message: 'KYC data retrieved successfully',
-      kyc: response,
-    });
-  } catch (error) {
-    console.error('Error retrieving KYC:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};

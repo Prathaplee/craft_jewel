@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const db = mongoose.connection.useDb('Test_1'); // Use the specific database
+const db = mongoose.connection.useDb('Test_1');
 
 // Define the user schema
 const userSchema = new mongoose.Schema(
@@ -29,22 +29,22 @@ const userSchema = new mongoose.Schema(
     },
     referralCode: {
       type: String,
-      required: false, 
+      required: false,
     },
     role: {
       type: String,
-      default: 'user', 
+      default: 'user',
     },
     otp: {
-      type: String, 
+      type: String,
     },
     token: {
-      type: String, 
-      required: false, 
+      type: String,
+      required: false,
     },
     tokenCreatedAt: {
-      type: Date, 
-      required: false, 
+      type: Date,
+      required: false,
     },
     address: {
       street: String,
@@ -59,41 +59,55 @@ const userSchema = new mongoose.Schema(
     },
     aadhaar_number: {
       type: String,
-      required: false, 
+      required: false,
     },
     pan_number: {
       type: String,
-      required: false, 
+      required: false,
     },
     kyc: {
       aadhaar_images: [
         {
-          data: Buffer, 
-          contentType: String, 
+          data: Buffer,
+          contentType: String,
         },
       ],
       pan_images: [
         {
-          data: Buffer, 
-          contentType: String, 
+          data: Buffer,
+          contentType: String,
         },
       ],
     },
     isVerifiedKyc: {
       type: Boolean,
-      default: false, 
+      default: false,
     },
   },
   { timestamps: true }
 );
 
-// Add a virtual field `isAddressAdded`
+// Add virtual field `isAddressAdded`
 userSchema.virtual('isAddressAdded').get(function () {
   const { street, city, state, pincode } = this.address || {};
-  return !!(street || city || state || pincode); // Returns true if any address field has a value
+  return !!(street || city || state || pincode);
 });
 
-// Ensure virtuals are included in JSON output
+// Add virtual field `isKycAdded`
+userSchema.virtual('isKycAdded').get(function () {
+  const hasAadhaarNumber = !!this.aadhaar_number;
+  const hasPanNumber = !!this.pan_number;
+  const hasKyc =
+    this.kyc &&
+    Array.isArray(this.kyc.aadhaar_images) &&
+    this.kyc.aadhaar_images.length > 0 &&
+    Array.isArray(this.kyc.pan_images) &&
+    this.kyc.pan_images.length > 0;
+
+  return hasAadhaarNumber && hasPanNumber && hasKyc;
+});
+
+// Ensure virtuals are included in JSON and Object output
 userSchema.set('toJSON', { virtuals: true });
 userSchema.set('toObject', { virtuals: true });
 
