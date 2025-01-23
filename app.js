@@ -30,22 +30,22 @@ app.get('/swagger.json', (req, res) => {
 app.use('/', authRoutes);
 
 // Apply the token verification middleware to protected routes
-// app.use('/',  verifyToken, userRoutes);
-// app.use('/', verifyToken, schemeRoutes);
-// app.use('/', verifyToken, subscribeRoutes);
-// app.use('/', verifyToken, paymentRoutes);
-// app.use('/', verifyToken, referralRoutes);
-// app.use('/', verifyToken, rateRoutes);
-// app.use('/', verifyToken, versionRoutes);
+app.use('/',  verifyToken, userRoutes);
+app.use('/', verifyToken, schemeRoutes);
+app.use('/', verifyToken, subscribeRoutes);
+app.use('/', verifyToken, paymentRoutes);
+app.use('/', verifyToken, referralRoutes);
+app.use('/', verifyToken, rateRoutes);
+app.use('/', verifyToken, versionRoutes);
 
 
-app.use('/', userRoutes);
-app.use('/', schemeRoutes);
-app.use('/', subscribeRoutes);
-app.use('/',  paymentRoutes);
-app.use('/',  referralRoutes);
-app.use('/',  rateRoutes);
-app.use('/',  versionRoutes);
+// app.use('/', userRoutes);
+// app.use('/', schemeRoutes);
+// app.use('/', subscribeRoutes);
+// app.use('/',  paymentRoutes);
+// app.use('/',  referralRoutes);
+// app.use('/',  rateRoutes);
+// app.use('/',  versionRoutes);
 
 
 const getLocalIp = () => {
