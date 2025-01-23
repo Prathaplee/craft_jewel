@@ -35,8 +35,8 @@ const subscriptionSchema = new mongoose.Schema({
     default: 'waiting'
   },
   due_date: {
-    type: Date,
-    default: null
+    type: [Date], // Array of due dates for the next 11 months
+    default: [],  // Starts empty, populated when subscribe_status is 'active'
   },
   payments: [
     {
