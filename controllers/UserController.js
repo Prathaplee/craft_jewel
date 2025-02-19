@@ -1,8 +1,8 @@
 const bcrypt = require('bcryptjs');
-const twilioClient = require('../config/twilio'); // Ensure your Twilio config is correct
-const User = require('../models/User'); // Import the User model
+const twilioClient = require('../config/twilio'); 
+const User = require('../models/User'); 
 const mongoose = require('mongoose');
-const db = mongoose.connection.useDb('Test_1'); // Use the specific database
+const db = mongoose.connection.useDb('Test_1');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -15,33 +15,27 @@ exports.signup = async (req, res) => {
   const { username, fullname, phonenumber, email, password ,role} = req.body;
 
   try {
-    // Check if user already exists by email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).send({ message: 'User already exists' });
     }
 
-    // Hash the password before saving
     const hashedPassword = bcrypt.hashSync(password, 10);
 
-    // Generate a referral code
     const referralCode = generateReferralCode();
 
-    // Create a new user with the provided data
     const user = new User({
       username,
       fullname,
       phonenumber,
       email,
-      password: hashedPassword,  // Store the hashed password
+      password: hashedPassword,  
       role,
-      referralCode,  // Set the referral code
+      referralCode, 
     });
 
-    // Save the user to the database
     const savedUser = await user.save();
 
-    // Return the saved user's data, including the referral code
     res.status(201).send({
       message: 'User created successfully',
       user: {
@@ -51,7 +45,7 @@ exports.signup = async (req, res) => {
         phonenumber: savedUser.phonenumber,
         email: savedUser.email,
         role: savedUser.role,
-        referralCode: savedUser.referralCode, // Ensure referral code is included
+        referralCode: savedUser.referralCode,
         isAddressAdded: savedUser.isAddressAdded,
 
       },
@@ -62,10 +56,9 @@ exports.signup = async (req, res) => {
   }
 };
 
-// Function to generate a unique referral code
 const generateReferralCode = () => {
-  const randomNumber = Math.floor(Math.random() * 1000); // Generate a random number between 0 and 999
-  return `REF${randomNumber.toString().padStart(3, '0')}`; // Ensure the number is always 3 digits
+  const randomNumber = Math.floor(Math.random() * 1000);
+  return `REF${randomNumber.toString().padStart(3, '0')}`; 
 };
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000);
@@ -74,54 +67,44 @@ exports.login = async (req, res) => {
   try {
     let { phonenumber } = req.body;
 
-    // Ensure phone number is provided
     if (!phonenumber) {
       return res.status(400).json({ message: 'Phone number is required' });
     }
 
-    // Convert phone number to string
     phonenumber = String(phonenumber).trim();
 
-    // Find user by phone number
     const user = await User.findOne({ phonenumber });
 
-    // If user is not found, return error
     if (!user) {
       return res.status(404).json({ message: 'Account not found' });
     }
 
-    // Generate OTP
     const otp = generateOtp();
 
-    // Prepare phone number in E.164 format
-    const countryCode = '+91'; // Set your country code
+    const countryCode = '+91'; 
     let formattedPhoneNumber = phonenumber;
     if (!formattedPhoneNumber.startsWith('+')) {
       formattedPhoneNumber = `${countryCode}${formattedPhoneNumber}`;
     }
 
-    // Ensure Twilio phone number is set in environment variables
     if (!process.env.TWILIO_PHONE_NUMBER) {
       throw new Error('Twilio phone number is not configured in environment variables.');
     }
 
-    // Send OTP via Twilio
     const message = await twilioClient.messages.create({
-      from: process.env.TWILIO_PHONE_NUMBER, // Your Twilio phone number
+      from: process.env.TWILIO_PHONE_NUMBER, 
       to: formattedPhoneNumber,
       body: `Your OTP is ${otp}`,
     });
 
-    // Save OTP to the user record
     user.otp = otp;
     await user.save();
 
     console.log(`OTP sent: ${message.sid}`);
 
-    // Return response
     res.json({
       message: 'OTP sent successfully',
-      otp: otp, // Include the OTP in the response
+      otp: otp, 
     });
   } catch (err) {
     console.error('Error during login:', err);
@@ -129,27 +112,22 @@ exports.login = async (req, res) => {
   }
 };
 
-// KYC retrieve function
 exports.getKYC = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Find the user by ID
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if KYC data exists for the user
     if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
       return res.status(404).json({ message: 'No KYC data found for this user' });
     }
 
-    // Retrieve Aadhaar images and PAN images
     const aadhaarImages = user.kyc.aadhaar_images || [];
     const panImages = user.kyc.pan_images || [];
 
-    // Create a response object
     const response = {
       aadhaar_images: aadhaarImages.map((image) => ({
         contentType: image.contentType,
@@ -161,7 +139,6 @@ exports.getKYC = async (req, res) => {
       })),
     };
 
-    // Send the response with images encoded as base64
     return res.json({
       message: 'KYC data retrieved successfully',
       kyc: response,
@@ -174,20 +151,15 @@ exports.getKYC = async (req, res) => {
 
 exports.getUser = async (req, res) => {
   try {
-    // Extract userId from request parameters
     const userId = req.params.id;
 
-    // Find the user by ID
     const user = await User.findById(userId);
 
     if (user) {
-      // Initialize user details without KYC data
       const userDetails = { ...user.toObject() };
-      delete userDetails.kyc; // Exclude KYC data from user details
+      delete userDetails.kyc; 
 
-      // Check if KYC data exists and fetch it if needed
       if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
-        // Use a mocked request and response for getKYC
         const reqMock = { params: { userId } };
         const resMock = {
           status: (statusCode) => ({
@@ -196,27 +168,22 @@ exports.getUser = async (req, res) => {
           json: (response) => response,
         };
 
-        // Call getKYC with the mocked objects
         const kycResponse = await exports.getKYC(reqMock, resMock);
 
-        // Respond with user details and KYC data
         return res.status(200).json({
           userDetails,
-          kyc: kycResponse.kyc, // Include KYC data separately
+          kyc: kycResponse.kyc, 
         });
       }
 
-      // Respond with user details (without KYC) if KYC data is missing
       return res.status(200).json({
         userDetails,
         message: "KYC data not available",
       });
     }
 
-    // If the user is not found
     return res.status(404).json({ message: "User not found" });
   } catch (err) {
-    // Handle errors gracefully
     console.error("Error fetching user:", err);
     res.status(500).json({
       message: "An error occurred while fetching the user",
@@ -228,9 +195,8 @@ exports.getUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { username, fullname, email, phonenumber } = req.body;  // Extract only the fields to be updated
+    const { username, fullname, email, phonenumber } = req.body; 
 
-    // Create an update object only with the fields provided in the request
     const updateFields = {};
     if (username) updateFields.username = username;
     if (fullname) updateFields.fullname = fullname;
@@ -261,7 +227,7 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id); // Use findByIdAndDelete
+    const user = await User.findByIdAndDelete(req.params.id); 
 
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
@@ -279,44 +245,36 @@ exports.verifyOtp = async (req, res) => {
   try {
     const { phonenumber, otp } = req.body;
 
-    // Validate input
     if (!phonenumber || !otp) {
       return res.status(400).send({ message: 'Phone number and OTP are required' });
     }
 
-    // Ensure phone number is a string
     const sanitizedPhoneNumber = String(phonenumber).trim();
 
-    // Find user by phone number
     const user = await User.findOne({ phonenumber: sanitizedPhoneNumber });
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
     }
 
-    // Compare OTPs as strings
     if (String(user.otp) !== String(otp)) {
       return res.status(401).send({ message: 'Invalid OTP' });
     }
 
-    // Mark user as verified and clear OTP
     user.isVerified = true;
-    user.otp = null; // Clear OTP after successful verification
+    user.otp = null; 
 
-    // Generate a new JWT token with a secret key stored in an environment variable
     const token = jwt.sign(
       { userId: user._id, username: user.username, role: user.role },
-      process.env.JWT_SECRET, // Secret key from environment variables
-      { expiresIn: '1h' } // Token expiry time
+      process.env.JWT_SECRET, 
+      { expiresIn: '168h' } 
     );
 
-    // Save the token in the user document (optional)
-    user.token = token; // Store the token in the database (optional, depending on your needs)
+    user.token = token; 
     await user.save();
 
-    // Return success message along with the token and user details
     return res.send({
       message: 'OTP verified successfully',
-      token, // Include the JWT token
+      token, 
       user: {
         _id: user._id,
         username: user.username,
@@ -339,12 +297,10 @@ exports.verifyOtp = async (req, res) => {
       const { userId } = req.params;
       const { address, bank_details } = req.body;
   
-      // Validate the input data for address and bank details
       if (!address || !bank_details) {
         return res.status(400).send({ message: 'Address and bank details are required' });
       }
   
-      // Ensure that the address and bank_details fields contain the required fields
       if (!address.street || !address.city || !address.state || !address.pincode) {
         return res.status(400).send({ message: 'Incomplete address information' });
       }
@@ -353,20 +309,16 @@ exports.verifyOtp = async (req, res) => {
         return res.status(400).send({ message: 'Incomplete bank details' });
       }
   
-      // Fetch user from the database
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).send({ message: 'User not found' });
       }
   
-      // Update the user's address and bank details
       user.address = address;
       user.bank_details = bank_details;
   
-      // Save the updated user to the database
       const updatedUser = await user.save();
   
-      // Return the updated user information excluding sensitive fields
       res.send({
         message: 'Profile updated successfully',
         user: {
@@ -386,15 +338,13 @@ exports.verifyOtp = async (req, res) => {
   };
 
 
-  // Configure multer for memory storage
   const storage = multer.memoryStorage();
   const upload = multer().fields([
-    { name: 'aadhaar', maxCount: 5 }, // Accept up to 5 Aadhaar images
-    { name: 'pan', maxCount: 5 }, // Accept up to 5 PAN images
+    { name: 'aadhaar', maxCount: 5 }, 
+    { name: 'pan', maxCount: 5 },
   ]);
   
 
-// KYC update function
 exports.updateKYC = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -404,11 +354,9 @@ exports.updateKYC = async (req, res) => {
     const { userId } = req.params;
     const { aadhaar_number, pan_number } = req.body;
 
-    // Retrieve uploaded files
-    const aadhaarImages = req.files?.aadhaar || []; // Array of Aadhaar images
-    const panImages = req.files?.pan || []; // Array of PAN images
+    const aadhaarImages = req.files?.aadhaar || []; 
+    const panImages = req.files?.pan || []; 
 
-    // Ensure all required data is provided
     if (!aadhaar_number || !pan_number) {
       return res.status(400).json({
         message: 'Aadhaar number and PAN number are required',
