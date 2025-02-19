@@ -306,7 +306,7 @@ exports.verifyOtp = async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, username: user.username, role: user.role },
       process.env.JWT_SECRET, // Secret key from environment variables
-      { expiresIn: '1h' } // Token expiry time
+      { expiresIn: '168h' } // Token expiry time
     );
 
     // Save the token in the user document (optional)
