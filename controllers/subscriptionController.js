@@ -337,11 +337,12 @@ const getSubscriptionReport = async (req, res) => {
 
 const { getKYC } = require('./UserController'); // Adjust the path to where `getKYC` is defined
 
+
 const getPendingRequests = async (req, res) => {
   try {
     // Retrieve all pending requests from both subscription models
-    const goldPendingRequests = await GoldSubscription.find({ subscribe_status: 'waiting' });
-    const diamondPendingRequests = await DiamondSubscription.find({ subscribe_status: 'waiting' });
+    const goldPendingRequests = await GoldSubscription.find({ subscribe_status: "waiting" });
+    const diamondPendingRequests = await DiamondSubscription.find({ subscribe_status: "waiting" });
 
     // Combine the results from both subscription types
     const allPendingRequests = [...goldPendingRequests, ...diamondPendingRequests];
@@ -351,11 +352,20 @@ const getPendingRequests = async (req, res) => {
       return res.status(404).json({ message: "No pending requests found" });
     }
 
+    const serverUrl = `${req.protocol}://${req.get("host")}`;
+
     // Retrieve user details and optionally KYC data for each pending request
     const enrichedRequests = await Promise.all(
       allPendingRequests.map(async (request) => {
         try {
           const user = await User.findById(request.user_id);
+          let schemeName = null;
+
+          // Fetch Scheme Name using scheme_id
+          if (request.scheme_id) {
+            const scheme = await Scheme.findById(request.scheme_id);
+            schemeName = scheme ? scheme.scheme_name : "Scheme not found";
+          }
 
           if (user) {
             // Initialize user details without KYC data
@@ -364,39 +374,42 @@ const getPendingRequests = async (req, res) => {
 
             // Check if KYC data exists and fetch it if needed
             if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
-              // Simulate calling `getKYC` by invoking its logic
-              const reqMock = { params: { userId: user._id } };
-              const resMock = {
-                json: (response) => response,
-                status: (statusCode) => ({
-                  json: (response) => ({ statusCode, ...response }),
-                }),
-              };
-              const kycResponse = await getKYC(reqMock, resMock);
-
-              // Return the enriched request with KYC data and user details (without KYC)
               return {
                 ...request.toObject(),
                 userDetails,
-                kyc: kycResponse.kyc, // Add KYC data separately
+                schemeName, // Add scheme name
+                kyc: {
+                  aadhaar_images: user.kyc.aadhaar_images.map((id) => ({
+                    fileId: id,
+                    url: `${serverUrl}/kyc/image/${id}`,
+                  })),
+                  pan_images: user.kyc.pan_images.map((id) => ({
+                    fileId: id,
+                    url: `${serverUrl}/kyc/image/${id}`,
+                  })),
+                },
               };
             }
 
-            // If no KYC data, just return user details without KYC
+            // If no KYC data, return request with user details and scheme name
             return {
               ...request.toObject(),
               userDetails,
+              schemeName,
+              message: "KYC data not available",
             };
           }
 
           return {
             ...request.toObject(),
-            userDetails: { message: 'User not found' },
+            userDetails: { message: "User not found" },
+            schemeName,
           };
         } catch (err) {
           return {
             ...request.toObject(),
-            userDetails: { message: 'Error retrieving user details', error: err.message },
+            userDetails: { message: "Error retrieving user details", error: err.message },
+            schemeName: "Error fetching scheme",
           };
         }
       })
@@ -414,6 +427,7 @@ const getPendingRequests = async (req, res) => {
     });
   }
 };
+
 
 
 const getSubscriptionReporUser = async (req, res) => {

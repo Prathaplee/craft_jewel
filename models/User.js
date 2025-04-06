@@ -66,18 +66,8 @@ const userSchema = new mongoose.Schema(
       required: false,
     },
     kyc: {
-      aadhaar_images: [
-        {
-          data: Buffer,
-          contentType: String,
-        },
-      ],
-      pan_images: [
-        {
-          data: Buffer,
-          contentType: String,
-        },
-      ],
+      aadhaar_images: [{ type: mongoose.Schema.Types.ObjectId, ref: "kycFiles" }],
+      pan_images: [{ type: mongoose.Schema.Types.ObjectId, ref: "kycFiles" }],
     },
     isVerifiedKyc: {
       type: Boolean,

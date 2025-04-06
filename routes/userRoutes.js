@@ -475,5 +475,5 @@ router.put('/update-kyc/:userId', UserController.updateKYC);
 
 router.get('/kyc/:userId', UserController.getKYC);
 
-
+router.get("/kyc/image/:fileId", UserController.getKYCImage);
 module.exports = router;

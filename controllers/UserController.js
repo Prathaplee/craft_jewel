@@ -1,15 +1,16 @@
 const bcrypt = require('bcryptjs');
-const twilioClient = require('../config/twilio'); // Ensure your Twilio config is correct
-const User = require('../models/User'); // Import the User model
+const twilioClient = require('../config/twilio'); 
+const User = require('../models/User'); 
 const mongoose = require('mongoose');
-const db = mongoose.connection.useDb('Test_1'); // Use the specific database
+const db = mongoose.connection.useDb('Test_1'); 
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 // const tokenStore = {};
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-
+const { GridFSBucket } = require("mongodb");
+const stream = require("stream");
 
 exports.signup = async (req, res) => {
   const { username, fullname, phonenumber, email, password ,role} = req.body;
@@ -126,102 +127,6 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('Error during login:', err);
     res.status(500).json({ message: 'Internal server error', error: err.message });
-  }
-};
-
-// KYC retrieve function
-exports.getKYC = async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    // Find the user by ID
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Check if KYC data exists for the user
-    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
-      return res.status(404).json({ message: 'No KYC data found for this user' });
-    }
-
-    // Retrieve Aadhaar images and PAN images
-    const aadhaarImages = user.kyc.aadhaar_images || [];
-    const panImages = user.kyc.pan_images || [];
-
-    // Create a response object
-    const response = {
-      aadhaar_images: aadhaarImages.map((image) => ({
-        contentType: image.contentType,
-        image: image.data.toString('base64'),
-      })),
-      pan_images: panImages.map((image) => ({
-        contentType: image.contentType,
-        image: image.data.toString('base64'),
-      })),
-    };
-
-    // Send the response with images encoded as base64
-    return res.json({
-      message: 'KYC data retrieved successfully',
-      kyc: response,
-    });
-  } catch (error) {
-    console.error('Error retrieving KYC:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-exports.getUser = async (req, res) => {
-  try {
-    // Extract userId from request parameters
-    const userId = req.params.id;
-
-    // Find the user by ID
-    const user = await User.findById(userId);
-
-    if (user) {
-      // Initialize user details without KYC data
-      const userDetails = { ...user.toObject() };
-      delete userDetails.kyc; // Exclude KYC data from user details
-
-      // Check if KYC data exists and fetch it if needed
-      if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
-        // Use a mocked request and response for getKYC
-        const reqMock = { params: { userId } };
-        const resMock = {
-          status: (statusCode) => ({
-            json: (response) => ({ statusCode, ...response }),
-          }),
-          json: (response) => response,
-        };
-
-        // Call getKYC with the mocked objects
-        const kycResponse = await exports.getKYC(reqMock, resMock);
-
-        // Respond with user details and KYC data
-        return res.status(200).json({
-          userDetails,
-          kyc: kycResponse.kyc, // Include KYC data separately
-        });
-      }
-
-      // Respond with user details (without KYC) if KYC data is missing
-      return res.status(200).json({
-        userDetails,
-        message: "KYC data not available",
-      });
-    }
-
-    // If the user is not found
-    return res.status(404).json({ message: "User not found" });
-  } catch (err) {
-    // Handle errors gracefully
-    console.error("Error fetching user:", err);
-    res.status(500).json({
-      message: "An error occurred while fetching the user",
-      error: err.message,
-    });
   }
 };
 
@@ -386,15 +291,13 @@ exports.verifyOtp = async (req, res) => {
   };
 
 
-  // Configure multer for memory storage
-  const storage = multer.memoryStorage();
-  const upload = multer().fields([
-    { name: 'aadhaar', maxCount: 5 }, // Accept up to 5 Aadhaar images
-    { name: 'pan', maxCount: 5 }, // Accept up to 5 PAN images
-  ]);
-  
+const bucket = new GridFSBucket(db, { bucketName: "kycFiles" });
+const storage = multer.memoryStorage();
+const upload = multer({ storage }).fields([
+  { name: "aadhaar", maxCount: 5 },
+  { name: "pan", maxCount: 5 },
+]);
 
-// KYC update function
 exports.updateKYC = async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
@@ -403,62 +306,161 @@ exports.updateKYC = async (req, res) => {
 
     const { userId } = req.params;
     const { aadhaar_number, pan_number } = req.body;
+    const aadhaarImages = req.files?.aadhaar || [];
+    const panImages = req.files?.pan || [];
 
-    // Retrieve uploaded files
-    const aadhaarImages = req.files?.aadhaar || []; // Array of Aadhaar images
-    const panImages = req.files?.pan || []; // Array of PAN images
-
-    // Ensure all required data is provided
     if (!aadhaar_number || !pan_number) {
       return res.status(400).json({
-        message: 'Aadhaar number and PAN number are required',
+        message: "Aadhaar number and PAN number are required",
       });
     }
 
     if (aadhaarImages.length === 0 || panImages.length === 0) {
       return res.status(400).json({
-        message: 'At least one Aadhaar image and one PAN image are required',
+        message: "At least one Aadhaar image and one PAN image are required",
       });
     }
 
     try {
-      // Find the user by ID
       const user = await User.findById(userId);
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return res.status(404).json({ message: "User not found" });
       }
 
-      // Update KYC details
       user.aadhaar_number = aadhaar_number;
       user.pan_number = pan_number;
+      user.kyc = { aadhaar_images: [], pan_images: [] };
 
-      user.kyc = {
-        aadhaar_images: aadhaarImages.map((file) => ({
-          data: file.buffer,
+      for (const file of aadhaarImages) {
+        const fileId = new mongoose.Types.ObjectId();
+        const uploadStream = bucket.openUploadStreamWithId(fileId, file.originalname, {
           contentType: file.mimetype,
-        })),
-        pan_images: panImages.map((file) => ({
-          data: file.buffer,
-          contentType: file.mimetype,
-        })),
-      };
+        });
+        stream.Readable.from(file.buffer).pipe(uploadStream);
+        user.kyc.aadhaar_images.push(fileId);
+      }
 
-      // Save updated user
+      for (const file of panImages) {
+        const fileId = new mongoose.Types.ObjectId();
+        const uploadStream = bucket.openUploadStreamWithId(fileId, file.originalname, {
+          contentType: file.mimetype,
+        });
+        stream.Readable.from(file.buffer).pipe(uploadStream);
+        user.kyc.pan_images.push(fileId);
+      }
+
       await user.save();
 
       return res.json({
-        message: 'KYC updated successfully',
+        message: "KYC updated successfully",
         kyc: {
           aadhaar_number,
           pan_number,
-          aadhaar_images: aadhaarImages.length,
-          pan_images: panImages.length,
+          aadhaar_images: user.kyc.aadhaar_images,
+          pan_images: user.kyc.pan_images,
         },
       });
     } catch (error) {
-      console.error('Error updating KYC:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+      console.error("Error updating KYC:", error);
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 };
 
+exports.getKYC = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.kyc || !user.kyc.aadhaar_images || !user.kyc.pan_images) {
+      return res.status(404).json({ message: "No KYC data found for this user" });
+    }
+
+    const aadhaarFiles = user.kyc.aadhaar_images.map((id) => ({ fileId: id }));
+    const panFiles = user.kyc.pan_images.map((id) => ({ fileId: id }));
+
+    return res.json({
+      message: "KYC data retrieved successfully",
+      kyc: {
+        aadhaar_images: aadhaarFiles,
+        pan_images: panFiles,
+      },
+    });
+  } catch (error) {
+    console.error("Error retrieving KYC:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.getUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const userDetails = { ...user.toObject() };
+    delete userDetails.kyc;
+
+    const serverUrl = `${req.protocol}://${req.get("host")}`;
+
+    if (user.kyc && user.kyc.aadhaar_images && user.kyc.pan_images) {
+      return res.status(200).json({
+        userDetails,
+        kyc: {
+          aadhaar_images: user.kyc.aadhaar_images.map((id) => ({
+            fileId: id,
+            url: `${serverUrl}/kyc/image/${id}`,
+          })),
+          pan_images: user.kyc.pan_images.map((id) => ({
+            fileId: id,
+            url: `${serverUrl}/kyc/image/${id}`,
+          })),
+        },
+      });
+    }
+
+    return res.status(200).json({
+      userDetails,
+      message: "KYC data not available",
+    });
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    return res.status(500).json({
+      message: "An error occurred while fetching the user",
+      error: err.message,
+    });
+  }
+};
+
+
+exports.getKYCImage = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      return res.status(400).json({ message: "Invalid file ID" });
+    }
+
+    const fileStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+
+    fileStream.on("error", (err) => {
+      console.error("Error retrieving file:", err);
+      return res.status(404).json({ message: "File not found" });
+    });
+
+    fileStream.on("file", (file) => {
+      res.set("Content-Type", file.contentType);
+    });
+
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
